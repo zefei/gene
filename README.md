@@ -1,6 +1,6 @@
 This is a very (could be overly) simple simulation of the wipeout gene described <a href="http://www.scientificamerican.com/article.cfm?id=the-wipeout-gene">here</a>.
 It is discussed <a href="http://www.reddit.com/r/science/comments/mq9jh/the_wipeout_gene_a_new_breed_of_genetically/">here</a> on Reddit,
-and the source of is page is hosted <a href="#">here</a> on Github.
+and the source of is page is hosted <a href="http://github.com/zefei/gene">here</a> on Github.
 
 The simple model used here assumes that at every iteration,
 an uninfected pair of mosquitos produces some uninfected offsprings.<br />
