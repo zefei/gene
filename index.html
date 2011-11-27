@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+
+<title>Wipeout Gene Simulation</title>
+
+<script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+
+<h2>About</h2>
+
+<p>
+This is a very (could be overly) simple simulation of the wipeout gene described <a href="http://www.scientificamerican.com/article.cfm?id=the-wipeout-gene">here</a>.
+It is discussed <a href="http://www.reddit.com/r/science/comments/mq9jh/the_wipeout_gene_a_new_breed_of_genetically/">here</a> on Reddit,
+and the source of is page is hosted <a href="#">here</a> on Github.
+</p>
+
+<p>
+The simple model used here assumes that at every iteration,
+an uninfected pair of mosquitos produces some uninfected offsprings.<br />
+The number of healthy offsprings (of each sex) for each pair is a function of the current total number of that sex,
+the original number of that sex, and a resilience coefficient (in [0, 1]).<br />
+The function is MIN((original_total / current_total) ^ resilience, 1000),
+implying that the nature has an inertia to restore any changes.<br />
+Also, an infected pair of mosquitos produces some infected male offsprings,
+the number of which also follows the resilience function.
+</p>
+
+<h2>Settings</h2>
+
+<p>
+<label for="total_number">Total number of mosquitos:</label>
+<input type="text" id="total_number" name="total_number" value="10,000,000" />
+</p>
+
+<p>
+<label for="male_number">Total number of male mosquitos:</label>
+<input type="text" id="male_number" name="male_number" value="50%" />
+</p>
+
+<p>
+<label for="infected_number">Total number of infected male mosquitos (out of all male mosquitos):</label>
+<input type="text" id="infected_number" name="infected_number" value="1%" />
+</p>
+
+<p>
+<label for="natural_resilience">Natural resilience:</label>
+<input type="text" id="natural_resilience" name="infected_number" value="0.01" />
+</p>
+
+<p>
+<label for="refresh_rate">Refresh rate (milliseconds):</label>
+<input type="text" id="refresh_rate" name="refresh_rate" value="1" />
+</p>
+
+<button id="start" onclick="onStart(); return false;">Start</button>
+
+<h2>Results</h2>
+
+<table cellpadding="5">
+  <tr>
+    <td width="200"></td>
+    <td width="200">Number</td>
+    <td width="200">Percentage</td>
+  </tr>
+
+  <tr>
+    <td>Total</td>
+    <td id="total_n"></td>
+    <td id="total_p">-</td>
+  </tr>
+
+  <tr>
+    <td>Infected total</td>
+    <td id="infected_total_n"></td>
+    <td id="infected_total_p"></td>
+  </tr>
+
+  <tr>
+    <td>Male</td>
+    <td id="male_n"></td>
+    <td id="male_p"></td>
+  </tr>
+
+  <tr>
+    <td>Infected male</td>
+    <td id="infected_male_n"></td>
+    <td id="infected_male_p"></td>
+  </tr>
+
+  <tr>
+    <td>Female</td>
+    <td id="female_n"></td>
+    <td id="female_p"></td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+  var started = false;
+  var init_male = 0;
+  var init_female = 0;
+  var total_male = 0;
+  var total_female = 0;
+  var total_infected = 0;
+  var resilience = 0;
+  var delay = 0;
+
+  function onStart() {
+    if (started) {
+      $('#start').html('Start');
+      started = false;
+    } else {
+      $('#start').html('Stop');
+      started = true;
+      get_inputs();
+      execute();
+    }
+  }
+
+  function execute() {
+    if (!started) return;
+    step();
+    set_results();
+    setTimeout(execute, delay);
+  }
+
+  function step() {
+    if (total_male == 0) {
+      total_male = total_female = total_infected = 0;
+      return;
+    }
+    var total_pair = Math.min(total_male, total_female);
+    var infected_pair = 1.0 * total_pair * total_infected / total_male;
+    var uninfected_pair = total_pair - infected_pair;
+    var new_total_male = offsprings(total_pair, total_male, init_male, resilience);
+    var new_total_female = offsprings(uninfected_pair, total_female, init_female, resilience);
+    var new_total_infected = offsprings(infected_pair, total_male, init_male, resilience);
+    total_male = Math.floor(new_total_male);
+    total_female = Math.floor(new_total_female);
+    total_infected = Math.floor(new_total_infected);
+  }
+
+  function offsprings(pair, current, original, resilience) {
+    if (current == 0) return 0;
+    var scale = Math.pow((original / current), resilience);
+    if (scale > 1000) scale = 1000;
+    return pair * scale;
+  }
+
+  function to_int(str) {
+    return parseInt(str.replace(/,| /g, ''));
+  }
+
+  function to_number_str(n) {
+    var arr = ['0'], i = 0; 
+    while (n != 0) {
+      arr[i++] = '' + n % 1000;
+      n = Math.floor(n / 1000);
+    }
+    arr = arr.reverse();
+    for (var i in arr) if (i > 0) while (arr[i].length < 3)
+      arr[i] = '0' + arr[i];
+    return arr.join(', ');
+  }
+
+  function to_percentage_str(n) {
+    return n.toFixed(2).toString() + '%';
+  }
+
+  function get_inputs() {
+    var total = to_int($('#total_number').val());
+    var male = $('#male_number').val();
+    if (male[male.length - 1] == '%') {
+      init_male = total_male = Math.floor(total * parseFloat(male) / 100.0);
+    } else {
+      init_male = total_male = to_int(male);
+    }
+    init_female = total_female = total - total_male;
+    var infected = $('#infected_number').val();
+    if (infected[infected.length - 1] == '%') {
+      total_infected = Math.floor(total_male * parseFloat(infected) / 100.0);
+    } else {
+      total_infected = to_int(infected);
+    }
+    resilience = parseFloat($('#natural_resilience').val());
+    if (resilience > 1) resilience = 1;
+    if (resilience < 0) resilience = 0;
+    delay = to_int($('#refresh_rate').val());
+  }
+
+  function set_results() {
+    var init_total = init_male + init_female;
+    var total = total_male + total_female;
+    $('#total_n').html(to_number_str(total));
+    if (init_total != 0) $('#total_p').html(to_percentage_str(total * 100.0 / init_total));
+    $('#infected_total_n').html(to_number_str(total_infected));
+    if (total != 0) $('#infected_total_p').html(to_percentage_str(total_infected * 100.0 / total));
+    $('#male_n').html(to_number_str(total_male));
+    if (total != 0) $('#male_p').html(to_percentage_str(total_male * 100.0 / total));
+    $('#infected_male_n').html(to_number_str(total_infected));
+    if (total_male != 0) $('#infected_male_p').html(to_percentage_str(total_infected * 100.0 / total_male));
+    $('#female_n').html(to_number_str(total_female));
+    if (total != 0) $('#female_p').html(to_percentage_str(total_female * 100.0 / total));
+  }
+</script>
